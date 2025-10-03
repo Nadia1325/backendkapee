@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: kapee-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromService:
+          type: web
+          name: kapee-backend
+          property: port
+      - key: MONGO_URI
+        value: "your-mongodb-atlas-connection-string-here"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: "https://your-vercel-app.vercel.app"
