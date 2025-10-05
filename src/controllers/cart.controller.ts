@@ -11,13 +11,37 @@ const formatCart = (cart: any) => {
     user: cart.user.toString(),
     items: cart.items
       .filter((i: any) => i.productId)
-      .map((i: any) => ({
-        productId: i.productId._id.toString(),
-        name: i.productId.name,
-        price: i.productId.price,
-        image: i.productId.image || "",
-        quantity: i.quantity,
-      })),
+      .map((i: any) => {
+        // Handle image - convert to consistent format
+        let imageUrl = "";
+        if (i.productId.image) {
+          if (i.productId.image.data && Buffer.isBuffer(i.productId.image.data)) {
+            // Product has image object with Buffer data
+            imageUrl = `data:${i.productId.image.contentType || 'image/jpeg'};base64,${i.productId.image.data.toString('base64')}`;
+          } else if (typeof i.productId.image === 'string') {
+            // Already a string (URL or base64)
+            imageUrl = i.productId.image;
+          } else if (typeof i.productId.image === 'object' && i.productId.image !== null) {
+            // Handle object type images (like the Smart Phone)
+            if (i.productId.image.data) {
+              imageUrl = `data:${i.productId.image.contentType || 'image/jpeg'};base64,${i.productId.image.data.toString('base64')}`;
+            } else {
+              // If it's an object but no data, try to extract any base64 or URL
+              const imageObj = i.productId.image;
+              if (imageObj.url) imageUrl = imageObj.url;
+              else if (imageObj.base64) imageUrl = imageObj.base64;
+            }
+          }
+        }
+        
+        return {
+          productId: i.productId._id.toString(),
+          name: i.productId.name,
+          price: i.productId.price,
+          image: imageUrl,
+          quantity: i.quantity,
+        };
+      }),
   };
 };
 
@@ -59,9 +83,11 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
 
     const savedCart = await cart.save();
     await savedCart.populate("items.productId");
-    return res.status(200).json(formatCart(savedCart));
+    
+    const formattedCart = formatCart(savedCart);
+    
+    return res.status(200).json(formattedCart);
   } catch (error: any) {
-    console.error("Add to cart error:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -90,7 +116,6 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
     await savedCart.populate("items.productId");
     return res.status(200).json(formatCart(savedCart));
   } catch (error: any) {
-    console.error("Update cart error:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -107,7 +132,6 @@ export const getCart = async (req: AuthRequest, res: Response) => {
     cart.items = cart.items.filter((i) => i.productId);
     return res.status(200).json(formatCart(cart));
   } catch (error: any) {
-    console.error("Get cart error:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -132,7 +156,6 @@ export const removeFromCart = async (req: AuthRequest, res: Response) => {
     await savedCart.populate("items.productId");
     return res.status(200).json(formatCart(savedCart));
   } catch (error: any) {
-    console.error("Remove from cart error:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
