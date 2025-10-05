@@ -34,8 +34,9 @@ app.use("/api/cart", cart_routes_1.default);
 app.use("/api/subscribe", subscribeRoutes_1.default);
 app.use("/api/stats", stats_routes_1.default);
 app.use("/api/home-images", homeImage_routes_1.default);
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 (0, db_1.default)();
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`🚀 Server running on http://${HOST}:${PORT}`);
 });
